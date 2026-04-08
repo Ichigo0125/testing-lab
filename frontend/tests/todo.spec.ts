@@ -87,4 +87,50 @@ test.describe('Todo Page', () => {
         await page.getByPlaceholder('Name').fill('Both Provided');
         await expect(addButton).toBeEnabled();
     });
+    // my test case 3
+
+    test('should mark a todo as completed when clicking Complete', async ({ page }) => {
+        const todo = {
+            id: 'mock-id-2',
+            name: 'Read book',
+            description: 'Finish chapter 1',
+            status: false,
+        };
+
+        let todos = [todo];
+
+        await page.route('**/api/v1/todos**', async (route) => {
+            const method = route.request().method();
+
+            if (method === 'GET') {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ todos }),
+                });
+                return;
+            }
+
+            if (method === 'PUT') {
+                todos = todos.map((item) =>
+                    item.id === todo.id ? { ...item, status: true } : item
+                );
+
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ todo: { ...todo, status: true } }),
+                });
+            }
+        });
+
+        await page.goto(BASE_URL);
+
+        await expect(page.getByRole('heading', { name: 'Read book' })).toBeVisible();
+        await page.getByRole('button', { name: 'Complete' }).click();
+
+        await expect(page.getByRole('heading', { name: 'Read book' })).toHaveClass(/line-through/);
+        await expect(page.getByText('Finish chapter 1')).toHaveClass(/line-through/);
+        await expect(page.getByRole('button', { name: 'Complete' })).toBeHidden();
+    });
 });

@@ -67,18 +67,68 @@ describe('Todo API Testing', () => {
 
   test('Given a valid ID and status, When receive a PUT /api/v1/todos/:id request, Then it should response the updated todo object', async () => {
     // arrange: mock the repo function to return an updated todo object
+    const id = 'todo-1'
+    const updatedTodo: Todo = {
+      id,
+      name: 'updated todo',
+      description: 'updated description',
+      status: true
+    }
+    const updateTodoByIdSpy = vi.spyOn(TodoRepo, 'updateTodoById').mockImplementation(async () => updatedTodo)
 
     // act: receive a PUT /api/v1/todos/:id request
+    const response = await server.inject({
+      method: 'PUT',
+      url: `/api/v1/todos/${id}`,
+      payload: {
+        status: true
+      }
+    })
 
     // assert: response should be the updated todo object
+    expect(response.statusCode).toBe(200)
+    const todo = JSON.parse(response.body)['todo']
+    expect(todo).toStrictEqual(updatedTodo)
+    expect(updateTodoByIdSpy).toHaveBeenCalledWith(id, { status: true })
   })
 
   test('Given an invalid ID, When receive a PUT /api/v1/todos/:id request, Then it should response with status code 404', async () => {
     // arrange: mock the repo function to return null
+    const id = 'not-found-id'
+    const updateTodoByIdSpy = vi.spyOn(TodoRepo, 'updateTodoById').mockImplementation(async () => null)
 
     // act: receive a PUT /api/v1/todos/:id request
+    const response = await server.inject({
+      method: 'PUT',
+      url: `/api/v1/todos/${id}`,
+      payload: {
+        status: true
+      }
+    })
 
     // assert: response should with status code 404
+    expect(response.statusCode).toBe(404)
+    const result = JSON.parse(response.body)
+    expect(result).toStrictEqual({ msg: `Not Found Todo:${id}` })
+    expect(updateTodoByIdSpy).toHaveBeenCalledWith(id, { status: true })
 
+  })
+
+  test('Given an invalid ID, When receive a DELETE /api/v1/todos/:id request, Then it should response with status code 404', async () => {
+    // arrange: mock the repo function to return null
+    const id = 'not-found-id'
+    const deleteTodoByIdSpy = vi.spyOn(TodoRepo, 'deleteTodoById').mockImplementation(async () => null as any)
+
+    // act: receive a DELETE /api/v1/todos/:id request
+    const response = await server.inject({
+      method: 'DELETE',
+      url: `/api/v1/todos/${id}`
+    })
+
+    // assert: response should with status code 404
+    expect(response.statusCode).toBe(404)
+    const result = JSON.parse(response.body)
+    expect(result).toStrictEqual({ msg: `Not Found Todo:${id}` })
+    expect(deleteTodoByIdSpy).toHaveBeenCalledWith(id)
   })
 })
